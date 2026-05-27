@@ -128,7 +128,7 @@ gmd({
     }
 
     try {
-      const searchResponse = await gmdJson(`https://yts.giftedtech.co.ke/?q=${encodeURIComponent(q)}`);
+      const searchResponse = await gmdJson(`https://yts.gifted.co.ke/?q=${encodeURIComponent(q)}`);
 
       if (!searchResponse || !Array.isArray(searchResponse.videos)) {
         await react("❌");

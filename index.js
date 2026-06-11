@@ -251,12 +251,7 @@ async function startPrince() {
             },
         };
 
-    } catch (err) {
-        console.error(err);
-    }
-}
-
-  Prince = princeConnect(princeSock);
+        Prince = princeConnect(princeSock);
 
         store.bind(Prince.ev);
 

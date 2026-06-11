@@ -3,6 +3,7 @@ const {
     isJidGroup,
     jidNormalizedUser,
     isJidBroadcast,
+    fetchLatestWaWebVersion,
     downloadMediaMessage,
     downloadContentFromMessage,
     downloadAndSaveMediaMessage,
@@ -125,6 +126,7 @@ let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 50;
 const RECONNECT_DELAY = 5000;
 
+/*
 async function startPrince() {
     try {
         const { version, isLatest } = await fetchLatestBaileysVersion();
@@ -179,7 +181,82 @@ async function startPrince() {
             },
         };
 
-        Prince = princeConnect(princeSock);
+      
+*/
+
+async function startPrince() {
+    try {
+        let version;
+
+        try {
+            const waVersion = await fetchLatestWaWebVersion();
+            version = waVersion.version;
+            console.log(`📡 WA Version : ${version.join('.')}`);
+        } catch (e) {
+            const fallback = await fetchLatestBaileysVersion();
+            version = fallback.version;
+            console.log(`📡 WA Version : ${version.join('.')} (fallback)`);
+        }
+
+        const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
+
+        if (store) {
+            store.destroy();
+        }
+        store = new gmdStore();
+
+        const princeSock = {
+            version,
+            logger: pino({ level: "silent" }),
+            browser: ["PRINCE", "safari", "1.0.0"],
+            auth: {
+                creds: state.creds,
+                keys: makeCacheableSignalKeyStore(state.keys, logger),
+            },
+            getMessage: async (key) => {
+                if (store) {
+                    const msg = store.loadMessage(key.remoteJid, key.id);
+                    return msg?.message || undefined;
+                }
+                return { conversation: "Error occurred" };
+            },
+            connectTimeoutMs: 60000,
+            defaultQueryTimeoutMs: 60000,
+            keepAliveIntervalMs: 10000,
+            markOnlineOnConnect: true,
+            syncFullHistory: false,
+            generateHighQualityLinkPreview: false,
+            patchMessageBeforeSending: (message) => {
+                const requiresPatch = !!(
+                    message.buttonsMessage ||
+                    message.templateMessage ||
+                    message.listMessage
+                );
+
+                if (requiresPatch) {
+                    message = {
+                        viewOnceMessage: {
+                            message: {
+                                messageContextInfo: {
+                                    deviceListMetadataVersion: 2,
+                                    deviceListMetadata: {},
+                                },
+                                ...message,
+                            },
+                        },
+                    };
+                }
+
+                return message;
+            },
+        };
+
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+  Prince = princeConnect(princeSock);
 
         store.bind(Prince.ev);
 
